@@ -180,6 +180,7 @@ func (s *sanity) checkInstr(idx int, instr Instruction) {
 		rng, ok := instr.Iter.(*Range)
 		if !ok {
 			s.errorf("Next: Iter is %T, not *Range", instr.Iter)
+			return
 		}
 		var ek, ev types.Type
 		switch xt := typeutil.CoreType(rng.X.Type()).(type) {
