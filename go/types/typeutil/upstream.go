@@ -27,21 +27,22 @@ type Map[V any] struct {
 	m typeutil.Map
 }
 
+type mapValue[V any] struct{ value V }
+
 func (m *Map[V]) Delete(key types.Type) bool { return m.m.Delete(key) }
 func (m *Map[V]) At(key types.Type) (V, bool) {
 	v := m.m.At(key)
 	if v == nil {
 		var zero V
 		return zero, false
-	} else {
-		return v.(V), true
 	}
+	return v.(mapValue[V]).value, true
 }
-func (m *Map[V]) Set(key types.Type, value V) { m.m.Set(key, value) }
+func (m *Map[V]) Set(key types.Type, value V) { m.m.Set(key, mapValue[V]{value}) }
 func (m *Map[V]) Len() int                    { return m.m.Len() }
 func (m *Map[V]) Iterate(f func(key types.Type, value V)) {
 	ff := func(key types.Type, value any) {
-		f(key, value.(V))
+		f(key, value.(mapValue[V]).value)
 	}
 	m.m.Iterate(ff)
 
