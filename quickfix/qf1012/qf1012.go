@@ -58,7 +58,7 @@ var (
 
 func run(pass *analysis.Pass) (any, error) {
 	qualifier := func(node ast.Node, fn *types.Func) string {
-		name := "fmt"
+		name := ""
 		ast.Inspect(node, func(node ast.Node) bool {
 			selector, ok := node.(*ast.SelectorExpr)
 			if !ok || pass.TypesInfo.ObjectOf(selector.Sel) != fn {
@@ -103,6 +103,12 @@ func run(pass *analysis.Pass) (any, error) {
 
 			args := m.State["args"].([]ast.Expr)
 			pkgName := qualifier(node, m.State["fn"].(*types.Func))
+			if pkgName == "" {
+				// A dot-imported fmt function has no qualifier to reuse.
+				// Report the opportunity without suggesting an unsafe fix.
+				report.Report(pass, node, msg)
+				return
+			}
 			fix := edit.Fix(msg, edit.ReplaceWithNode(pass.Fset, node, &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
 					X:   ast.NewIdent(pkgName),
@@ -128,6 +134,10 @@ func run(pass *analysis.Pass) (any, error) {
 
 			args := m.State["args"].([]ast.Expr)
 			pkgName := qualifier(node, m.State["fn"].(*types.Func))
+			if pkgName == "" {
+				report.Report(pass, node, msg)
+				return
+			}
 			fix := edit.Fix(msg, edit.ReplaceWithNode(pass.Fset, node, &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
 					X:   ast.NewIdent(pkgName),
