@@ -187,7 +187,10 @@ func parseDirective(s string) (cmd string, args []string) {
 		return "", nil
 	}
 	s = strings.TrimPrefix(s, "//lint:")
-	fields := strings.Split(s, " ")
+	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return "", nil
+	}
 	return fields[0], fields[1:]
 }
 
