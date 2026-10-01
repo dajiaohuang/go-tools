@@ -1,8 +1,10 @@
 package typeutil
 
 import (
+	"fmt"
 	"go/ast"
 	"go/types"
+	"strings"
 	_ "unsafe"
 
 	"golang.org/x/tools/go/types/typeutil"
@@ -48,6 +50,16 @@ func (m *Map[V]) Iterate(f func(key types.Type, value V)) {
 
 }
 func (m *Map[V]) Keys() []types.Type          { return m.m.Keys() }
-func (m *Map[V]) String() string              { return m.m.String() }
+func (m *Map[V]) String() string {
+	var b strings.Builder
+	b.WriteByte('{')
+	sep := ""
+	m.Iterate(func(key types.Type, value V) {
+		fmt.Fprintf(&b, "%s%v: %q", sep, key, any(value))
+		sep = ", "
+	})
+	b.WriteByte('}')
+	return b.String()
+}
 func (m *Map[V]) KeysString() string          { return m.m.KeysString() }
 func (m *Map[V]) SetHasher(h typeutil.Hasher) { m.m.SetHasher(h) }

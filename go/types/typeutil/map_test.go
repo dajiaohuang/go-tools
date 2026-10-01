@@ -25,3 +25,13 @@ func TestMapNilValue(t *testing.T) {
 		t.Fatal("Iterate did not visit the nil-valued entry")
 	}
 }
+
+func TestMapStringUnwrapsValues(t *testing.T) {
+	key := types.Typ[types.Int]
+	m := new(Map[string])
+	m.Set(key, "value")
+
+	if got, want := m.String(), `{int: "value"}`; got != want {
+		t.Fatalf("String() = %q, want %q", got, want)
+	}
+}
