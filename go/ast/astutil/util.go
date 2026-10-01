@@ -321,7 +321,8 @@ func Equal(a, b ast.Node) bool {
 		return false
 	case *ast.ChanType:
 		b := b.(*ast.ChanType)
-		return a.Dir == b.Dir && (a.Arrow == token.NoPos && b.Arrow == token.NoPos || a.Arrow != token.NoPos && b.Arrow != token.NoPos)
+		return a.Dir == b.Dir && Equal(a.Value, b.Value) &&
+			(a.Arrow == token.NoPos && b.Arrow == token.NoPos || a.Arrow != token.NoPos && b.Arrow != token.NoPos)
 	case *ast.FieldList:
 		b := b.(*ast.FieldList)
 		if len(a.List) != len(b.List) {
