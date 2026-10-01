@@ -57,3 +57,9 @@ func fn() { }`
 		})
 	}
 }
+
+func TestDeprecationNil(t *testing.T) {
+	if got := astutil.Deprecation(nil); got != "" {
+		t.Fatalf("Deprecation(nil) = %q, want empty string", got)
+	}
+}
