@@ -120,14 +120,23 @@ func WorkspaceVendorEnabled(ctx context.Context, inv Invocation, r *Runner) (boo
 		return false, nil, err
 	}
 	goWork := string(bytes.TrimSpace(stdout.Bytes()))
-	if fi, err := os.Stat(filepath.Join(filepath.Dir(goWork), "vendor")); err == nil && fi.IsDir() {
-		mainMods, err := getWorkspaceMainModules(ctx, inv, r)
-		if err != nil {
-			return false, nil, err
+	if vendorDir, ok := workspaceVendorDir(goWork); ok {
+		if fi, err := os.Stat(vendorDir); err == nil && fi.IsDir() {
+			mainMods, err := getWorkspaceMainModules(ctx, inv, r)
+			if err != nil {
+				return false, nil, err
+			}
+			return true, mainMods, nil
 		}
-		return true, mainMods, nil
 	}
 	return false, nil, nil
+}
+
+func workspaceVendorDir(goWork string) (string, bool) {
+	if goWork == "" || goWork == "off" {
+		return "", false
+	}
+	return filepath.Join(filepath.Dir(goWork), "vendor"), true
 }
 
 // getWorkspaceMainModules gets the main modules' information.
