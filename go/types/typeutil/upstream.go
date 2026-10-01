@@ -31,8 +31,14 @@ type Map[V any] struct {
 
 type mapValue[V any] struct{ value V }
 
-func (m *Map[V]) Delete(key types.Type) bool { return m.m.Delete(key) }
+func (m *Map[V]) Delete(key types.Type) bool {
+	return m != nil && m.m.Delete(key)
+}
 func (m *Map[V]) At(key types.Type) (V, bool) {
+	if m == nil {
+		var zero V
+		return zero, false
+	}
 	v := m.m.At(key)
 	if v == nil {
 		var zero V
@@ -41,16 +47,32 @@ func (m *Map[V]) At(key types.Type) (V, bool) {
 	return v.(mapValue[V]).value, true
 }
 func (m *Map[V]) Set(key types.Type, value V) { m.m.Set(key, mapValue[V]{value}) }
-func (m *Map[V]) Len() int                    { return m.m.Len() }
+func (m *Map[V]) Len() int {
+	if m == nil {
+		return 0
+	}
+	return m.m.Len()
+}
 func (m *Map[V]) Iterate(f func(key types.Type, value V)) {
+	if m == nil {
+		return
+	}
 	ff := func(key types.Type, value any) {
 		f(key, value.(mapValue[V]).value)
 	}
 	m.m.Iterate(ff)
 
 }
-func (m *Map[V]) Keys() []types.Type          { return m.m.Keys() }
+func (m *Map[V]) Keys() []types.Type {
+	if m == nil {
+		return []types.Type{}
+	}
+	return m.m.Keys()
+}
 func (m *Map[V]) String() string {
+	if m == nil {
+		return "{}"
+	}
 	var b strings.Builder
 	b.WriteByte('{')
 	sep := ""
@@ -61,5 +83,14 @@ func (m *Map[V]) String() string {
 	b.WriteByte('}')
 	return b.String()
 }
-func (m *Map[V]) KeysString() string          { return m.m.KeysString() }
-func (m *Map[V]) SetHasher(h typeutil.Hasher) { m.m.SetHasher(h) }
+func (m *Map[V]) KeysString() string {
+	if m == nil {
+		return "{}"
+	}
+	return m.m.KeysString()
+}
+func (m *Map[V]) SetHasher(h typeutil.Hasher) {
+	if m != nil {
+		m.m.SetHasher(h)
+	}
+}
