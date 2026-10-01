@@ -44,6 +44,24 @@ func fn5() {
 }
 
 
+func fnTickOKBranchReturn() {
+	for {
+		_, ok := <-time.Tick(0) //@ diag(`leaks the underlying ticker`)
+		if ok {
+			return
+		}
+	}
+}
+
+func fnTickClosedBranchReturn() {
+	for {
+		_, ok := <-time.Tick(0)
+		if !ok {
+			return
+		}
+	}
+}
+
 type T struct{}
 
 func (t *T) foo() {
