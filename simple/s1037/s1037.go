@@ -39,10 +39,26 @@ var (
 func run(pass *analysis.Pass) (any, error) {
 	for node, m := range code.Matches(pass, checkElaborateSleepQ) {
 		if body, ok := m.State["body"].([]ast.Stmt); ok && len(body) == 0 {
+			var time ast.Expr
+			ast.Inspect(node, func(n ast.Node) bool {
+				call, ok := n.(*ast.CallExpr)
+				if !ok {
+					return true
+				}
+				sel, ok := call.Fun.(*ast.SelectorExpr)
+				if ok && sel.Sel.Name == "After" {
+					time = sel.X
+				}
+				return true
+			})
+			replacement := &ast.CallExpr{
+				Fun:  &ast.SelectorExpr{X: time, Sel: ast.NewIdent("Sleep")},
+				Args: []ast.Expr{m.State["arg"].(ast.Expr)},
+			}
 			report.Report(pass, node, "should use time.Sleep instead of elaborate way of sleeping",
 				report.ShortRange(),
 				report.FilterGenerated(),
-				report.Fixes(edit.Fix("Use time.Sleep", edit.ReplaceWithPattern(pass.Fset, node, checkElaborateSleepR, m.State))))
+				report.Fixes(edit.Fix("Use time.Sleep", edit.ReplaceWithNode(pass.Fset, node, replacement))))
 		} else {
 			// TODO(dh): we could make a suggested fix if the body
 			// doesn't declare or shadow any identifiers
