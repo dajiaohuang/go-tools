@@ -34,7 +34,7 @@ func Transpose[NodeID comparable](g Graph[NodeID]) Graph[NodeID] {
 }
 
 func (t transpose[NodeID]) NumNodes() int {
-	return len(t.preds)
+	return t.Graph.NumNodes()
 }
 
 func (t transpose[NodeID]) Nodes() iter.Seq[NodeID] {
