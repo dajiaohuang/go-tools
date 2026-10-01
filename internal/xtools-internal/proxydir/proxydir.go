@@ -52,7 +52,7 @@ func WriteModuleVersion(rootDir, module, ver string, files map[string][]byte) (r
 	}
 
 	// zip of all the source files.
-	f, err = os.OpenFile(filepath.Join(dir, ver+".zip"), os.O_CREATE|os.O_WRONLY, 0644)
+	f, err = os.OpenFile(filepath.Join(dir, ver+".zip"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}

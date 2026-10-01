@@ -110,3 +110,37 @@ func TestWriteModuleVersion(t *testing.T) {
 		}
 	}
 }
+
+func TestWriteModuleVersionReplacesExistingZip(t *testing.T) {
+	dir := t.TempDir()
+	module, version := "mod.test/module", "v1.2.3"
+	files := map[string][]byte{
+		"go.mod": []byte("module mod.test/module"),
+		"long.go": []byte("package module\nconst Answer = 42\n"),
+	}
+	if err := WriteModuleVersion(dir, module, version, files); err != nil {
+		t.Fatal(err)
+	}
+	files = map[string][]byte{
+		"go.mod": []byte("module mod.test/module"),
+		"a.go":   []byte("package module"),
+	}
+	if err := WriteModuleVersion(dir, module, version, files); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, filepath.FromSlash(module), "@v", version+".zip")
+	zr, err := zip.OpenReader(path)
+	if err != nil {
+		t.Fatalf("open replacement zip: %v", err)
+	}
+	defer zr.Close()
+	if len(zr.File) != len(files) {
+		t.Fatalf("replacement zip has %d files, want %d", len(zr.File), len(files))
+	}
+	for _, file := range zr.File {
+		name := strings.TrimPrefix(file.Name, module+"@"+version+"/")
+		if _, ok := files[name]; !ok {
+			t.Errorf("replacement zip contains stale file %q", name)
+		}
+	}
+}
