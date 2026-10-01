@@ -70,11 +70,12 @@ func (r *Result) Nilness(fn *types.Func, ret int) ValueNilness {
 	if !typeutil.MaybePointerLike(typ) {
 		return ValueNilness{Outer: NeverNil}
 	}
-	if len(r.m[fn]) == 0 {
+	rets := r.m[fn]
+	if len(rets) != fn.Type().(*types.Signature).Results().Len() {
 		return ValueNilness{Inner: MaybeNil, Outer: MaybeNil}
 	}
 
-	return normalize(r.m[fn][ret], typ)
+	return normalize(rets[ret], typ)
 }
 
 func normalize(v ValueNilness, typ types.Type) ValueNilness {
