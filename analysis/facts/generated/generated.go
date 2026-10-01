@@ -38,13 +38,19 @@ func isGenerated(path string) (Generator, bool) {
 	}
 	defer f.Close()
 	br := bufio.NewReader(f)
-	for {
+	// Generated-file markers are only meaningful in the file header. In
+	// particular, don't treat comments in function bodies as a file-wide
+	// declaration that the file was generated.
+	for i := 0; i < 10; i++ {
 		s, err := br.ReadBytes('\n')
 		if err != nil && err != io.EOF {
 			return 0, false
 		}
 		s = bytes.TrimSuffix(s, crnl)
 		s = bytes.TrimSuffix(s, nl)
+		if bytes.HasPrefix(s, []byte("package ")) {
+			return 0, false
+		}
 		if bytes.HasPrefix(s, prefix) && bytes.HasSuffix(s, suffix) {
 			if len(s)-len(suffix) < len(prefix) {
 				return Unknown, true
