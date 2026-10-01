@@ -206,7 +206,7 @@ func goModMarkers(e *Exported, gomod string) ([]*expect.Note, error) {
 	gomod = strings.TrimSuffix(gomod, ".temp")
 	// If we are in Modules mode, copy the original contents file back into go.mod
 	if err := os.WriteFile(gomod, content, 0644); err != nil {
-		return nil, nil
+		return nil, err
 	}
 	return expect.Parse(e.ExpectFileSet, gomod, content)
 }
