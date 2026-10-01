@@ -11,6 +11,7 @@ import (
 
 	"golang.org/x/tools/go/analysis/analysistest"
 	"honnef.co/go/tools/internal/passes/buildir"
+	"honnef.co/go/tools/internal/xtools-internal/testenv"
 )
 
 func Test(t *testing.T) {
@@ -25,4 +26,9 @@ func Test(t *testing.T) {
 			f.WriteTo(os.Stderr)
 		}
 	}
+}
+
+func TestGenericMethodValueWithGenericFunction(t *testing.T) {
+	testenv.NeedsGoCommand1Point(t, 27)
+	analysistest.Run(t, analysistest.TestData(), buildir.Analyzer, "issue1749")
 }
