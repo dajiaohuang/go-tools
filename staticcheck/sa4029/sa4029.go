@@ -60,10 +60,12 @@ func run(pass *analysis.Pass) (any, error) {
 		default:
 			panic(fmt.Sprintf("unreachable: %q", typeName))
 		}
+		typeCall := node.(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+		typeSelector := typeCall.Fun.(*ast.SelectorExpr)
 
 		r := &ast.CallExpr{
 			Fun: &ast.SelectorExpr{
-				X:   &ast.Ident{Name: "sort"},
+				X:   typeSelector.X,
 				Sel: &ast.Ident{Name: alternative},
 			},
 			Args: []ast.Expr{m.State["target"].(ast.Expr)},
