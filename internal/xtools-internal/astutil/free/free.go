@@ -248,10 +248,12 @@ func (v *freeVisitor) Visit(n ast.Node) ast.Visitor {
 				v.declare(spec.Name)
 				if spec.TypeParams != nil {
 					v.openScope()
-					defer v.closeScope()
 					v.walkTypeParams(spec.TypeParams)
+					v.walk(spec.Type)
+					v.closeScope()
+				} else {
+					v.walk(spec.Type)
 				}
-				v.walk(spec.Type)
 			}
 
 		case token.IMPORT:
