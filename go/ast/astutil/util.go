@@ -70,7 +70,7 @@ func GroupSpecs(fset *token.FileSet, specs []ast.Spec) [][]ast.Spec {
 }
 
 // CopyExpr creates a deep copy of an expression.
-// It doesn't support copying FuncLits and returns ok == false when encountering one.
+// It returns ok == false for nodes whose child expressions aren't copied.
 func CopyExpr(node ast.Expr) (ast.Expr, bool) {
 	switch node := node.(type) {
 	case *ast.BasicLit:
@@ -201,12 +201,10 @@ func CopyExpr(node ast.Expr) (ast.Expr, bool) {
 		cp := *node
 		cp.Elt, ok = CopyExpr(cp.Elt)
 		return &cp, ok
-	case *ast.InterfaceType:
-		cp := *node
-		return &cp, true
-	case *ast.StructType:
-		cp := *node
-		return &cp, true
+	case *ast.InterfaceType, *ast.StructType:
+		// These nodes contain field lists and nested expressions. Until we can
+		// copy those recursively, don't claim to have produced a deep copy.
+		return nil, false
 	case *ast.FuncLit, *ast.FuncType:
 		// TODO(dh): implement copying of function literals and types.
 		return nil, false
