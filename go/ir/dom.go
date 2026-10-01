@@ -247,7 +247,7 @@ func sanityCheckDomTree(f *Function) {
 	for i, b := range f.Blocks {
 		if i == 0 || b == f.Recover {
 			// A root is dominated only by itself.
-			D[i].SetBit(&D[0], 0, 1)
+			D[i].SetBit(&D[i], i, 1)
 		} else {
 			// All other blocks are (initially) dominated
 			// by every block.
