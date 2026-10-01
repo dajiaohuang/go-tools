@@ -117,8 +117,15 @@ func (e *Exported) Expect(methods map[string]any) error {
 		if len(args) > 0 {
 			return fmt.Errorf("%v: unwanted args got %+v extra", e.ExpectFileSet.Position(n.Pos), args)
 		}
-		//TODO: catch the error returned from the method
-		mi.f.Call(params)
+		results := mi.f.Call(params)
+		if len(results) > 0 {
+			result := results[len(results)-1]
+			if result.Type().Implements(reflect.TypeFor[error]()) {
+				if err, ok := result.Interface().(error); ok && err != nil {
+					return fmt.Errorf("%v: %w", e.ExpectFileSet.Position(n.Pos), err)
+				}
+			}
+		}
 	}
 	return nil
 }
