@@ -55,12 +55,20 @@ var (
 		(CallExpr fun@(Symbol (Or "strings.ToLower" "strings.ToUpper")) [a])
  		tok@(Or "==" "!=")
  		(CallExpr fun [b]))`)
-	checkToLowerToUpperComparisonR = pattern.MustParse(`(CallExpr (SelectorExpr (Ident "strings") (Ident "EqualFold")) [a b])`)
 )
 
 func run(pass *analysis.Pass) (any, error) {
 	for node, m := range code.Matches(pass, checkToLowerToUpperComparisonQ) {
-		rn := pattern.NodeToAST(checkToLowerToUpperComparisonR.Root, m.State).(ast.Expr)
+		comparison := node.(*ast.BinaryExpr)
+		leftCall := comparison.X.(*ast.CallExpr)
+		stringsPackage := leftCall.Fun.(*ast.SelectorExpr).X
+		var rn ast.Expr = &ast.CallExpr{
+			Fun: &ast.SelectorExpr{X: stringsPackage, Sel: ast.NewIdent("EqualFold")},
+			Args: []ast.Expr{
+				m.State["a"].(ast.Expr),
+				m.State["b"].(ast.Expr),
+			},
+		}
 		method := "strings.EqualFold"
 		if m.State["tok"].(token.Token) == token.NEQ {
 			rn = &ast.UnaryExpr{
