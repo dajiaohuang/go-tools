@@ -247,7 +247,6 @@ func Unify(x, y types.Type, unifier map[*types.TypeParam]types.Type) bool {
 	}
 
 	if !uni(x, y) {
-		clear(unifier)
 		return false
 	}
 
