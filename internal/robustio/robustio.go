@@ -9,9 +9,6 @@
 // in this package do not completely eliminate spurious errors. However, they do
 // significantly reduce the rate of failure in practice.
 //
-// If so, the error will likely wrap one of:
-// The functions in this package do not completely eliminate spurious errors,
-// but substantially reduce their rate of occurrence in practice.
 package robustio
 
 // Rename is like os.Rename, but on Windows retries errors that may occur if the
