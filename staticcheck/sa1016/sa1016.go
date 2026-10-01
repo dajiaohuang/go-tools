@@ -3,6 +3,7 @@ package sa1016
 import (
 	"fmt"
 	"go/ast"
+	"strconv"
 
 	"honnef.co/go/tools/analysis/code"
 	"honnef.co/go/tools/analysis/edit"
@@ -73,17 +74,19 @@ func run(pass *analysis.Pass) (any, error) {
 			if isSignal(pass, arg, "os.Kill") || isSignal(pass, arg, "syscall.SIGKILL") {
 				var fixes []analysis.SuggestedFix
 				if !hasSigterm {
-					nargs := make([]ast.Expr, len(call.Args))
-					for j, a := range call.Args {
-						if i == j {
-							nargs[j] = edit.Selector("syscall", "SIGTERM")
-						} else {
-							nargs[j] = a
+					if syscallAlias := importAlias(pass, call, "syscall"); syscallAlias != "" {
+						nargs := make([]ast.Expr, len(call.Args))
+						for j, a := range call.Args {
+							if i == j {
+								nargs[j] = edit.Selector(syscallAlias, "SIGTERM")
+							} else {
+								nargs[j] = a
+							}
 						}
+						ncall := *call
+						ncall.Args = nargs
+						fixes = append(fixes, edit.Fix(fmt.Sprintf("Use syscall.SIGTERM instead of %s", report.Render(pass, arg)), edit.ReplaceWithNode(pass.Fset, call, &ncall)))
 					}
-					ncall := *call
-					ncall.Args = nargs
-					fixes = append(fixes, edit.Fix(fmt.Sprintf("Use syscall.SIGTERM instead of %s", report.Render(pass, arg)), edit.ReplaceWithNode(pass.Fset, call, &ncall)))
 				}
 				nargs := make([]ast.Expr, 0, len(call.Args))
 				for j, a := range call.Args {
@@ -112,4 +115,21 @@ func run(pass *analysis.Pass) (any, error) {
 		}
 	}
 	return nil, nil
+}
+
+func importAlias(pass *analysis.Pass, node ast.Node, importPath string) string {
+	for _, spec := range code.File(pass, node).Imports {
+		p, err := strconv.Unquote(spec.Path.Value)
+		if err != nil || p != importPath {
+			continue
+		}
+		if spec.Name == nil {
+			return importPath
+		}
+		if spec.Name.Name == "." || spec.Name.Name == "_" {
+			return ""
+		}
+		return spec.Name.Name
+	}
+	return ""
 }
