@@ -3,6 +3,7 @@ package sa4026
 import (
 	"fmt"
 	"go/types"
+	"strconv"
 
 	"honnef.co/go/tools/analysis/code"
 	"honnef.co/go/tools/analysis/edit"
@@ -53,26 +54,52 @@ var negativeZeroFloatQ = pattern.MustParse(`
 			(UnaryExpr "-" lit@(BasicLit "INT" "0"))))`)
 
 func run(pass *analysis.Pass) (any, error) {
+	mathName := ""
+	for _, file := range pass.Files {
+		for _, spec := range file.Imports {
+			path, err := strconv.Unquote(spec.Path.Value)
+			if err != nil || path != "math" {
+				continue
+			}
+			var pkgName *types.PkgName
+			if spec.Name != nil {
+				pkgName, _ = pass.TypesInfo.Defs[spec.Name].(*types.PkgName)
+			} else {
+				pkgName, _ = pass.TypesInfo.Implicits[spec].(*types.PkgName)
+			}
+			if pkgName != nil && pkgName.Name() != "." && pkgName.Name() != "_" {
+				mathName = pkgName.Name()
+			}
+		}
+	}
 	for node, m := range code.Matches(pass, negativeZeroFloatQ) {
 		if conv, ok := m.State["conv"].(*types.TypeName); ok {
 			var replacement string
 			// TODO(dh): how does this handle type aliases?
 			if conv.Name() == "float32" {
-				replacement = `float32(math.Copysign(0, -1))`
+				replacement = fmt.Sprintf(`float32(%s.Copysign(0, -1))`, mathName)
 			} else {
-				replacement = `math.Copysign(0, -1)`
+				replacement = fmt.Sprintf(`%s.Copysign(0, -1)`, mathName)
+			}
+			var opts []report.Option
+			if mathName != "" {
+				opts = append(opts, report.Fixes(edit.Fix("Use math.Copysign to create negative zero", edit.ReplaceWithString(node, replacement))))
 			}
 			report.Report(pass, node,
 				fmt.Sprintf("in Go, the floating-point expression '%s' is the same as '%s(%s)', it does not produce a negative zero",
 					report.Render(pass, node),
 					conv.Name(),
 					report.Render(pass, m.State["lit"])),
-				report.Fixes(edit.Fix("Use math.Copysign to create negative zero", edit.ReplaceWithString(node, replacement))))
+				opts...)
 		} else {
-			const replacement = `math.Copysign(0, -1)`
 			report.Report(pass, node,
 				"in Go, the floating-point literal '-0.0' is the same as '0.0', it does not produce a negative zero",
-				report.Fixes(edit.Fix("Use math.Copysign to create negative zero", edit.ReplaceWithString(node, replacement))))
+				func() report.Option {
+					if mathName == "" {
+						return nil
+					}
+					return report.Fixes(edit.Fix("Use math.Copysign to create negative zero", edit.ReplaceWithString(node, fmt.Sprintf(`%s.Copysign(0, -1)`, mathName))))
+				}())
 		}
 	}
 	return nil, nil
