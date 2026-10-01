@@ -57,6 +57,22 @@ var (
 )
 
 func run(pass *analysis.Pass) (any, error) {
+	qualifier := func(node ast.Node, fn *types.Func) string {
+		name := "fmt"
+		ast.Inspect(node, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if !ok || pass.TypesInfo.ObjectOf(selector.Sel) != fn {
+				return true
+			}
+			if ident, ok := selector.X.(*ast.Ident); ok {
+				name = ident.Name
+				return false
+			}
+			return true
+		})
+		return name
+	}
+
 	fn := func(node ast.Node) {
 		getRecv := func(m *pattern.Matcher) (ast.Expr, types.Type) {
 			recv := m.State["recv"].(ast.Expr)
@@ -86,9 +102,10 @@ func run(pass *analysis.Pass) (any, error) {
 			msg := fmt.Sprintf("Use fmt.%s(...) instead of Write([]byte(fmt.%s(...)))", newName, name)
 
 			args := m.State["args"].([]ast.Expr)
+			pkgName := qualifier(node, m.State["fn"].(*types.Func))
 			fix := edit.Fix(msg, edit.ReplaceWithNode(pass.Fset, node, &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("fmt"),
+					X:   ast.NewIdent(pkgName),
 					Sel: ast.NewIdent(newName),
 				},
 				Args: append([]ast.Expr{recv}, args...),
@@ -110,9 +127,10 @@ func run(pass *analysis.Pass) (any, error) {
 			msg := fmt.Sprintf("Use fmt.%s(...) instead of WriteString(fmt.%s(...))", newName, name)
 
 			args := m.State["args"].([]ast.Expr)
+			pkgName := qualifier(node, m.State["fn"].(*types.Func))
 			fix := edit.Fix(msg, edit.ReplaceWithNode(pass.Fset, node, &ast.CallExpr{
 				Fun: &ast.SelectorExpr{
-					X:   ast.NewIdent("fmt"),
+					X:   ast.NewIdent(pkgName),
 					Sel: ast.NewIdent(newName),
 				},
 				Args: append([]ast.Expr{recv}, args...),
