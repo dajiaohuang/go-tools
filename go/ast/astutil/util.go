@@ -128,6 +128,7 @@ func CopyExpr(node ast.Expr) (ast.Expr, bool) {
 		if !ok {
 			return nil, false
 		}
+		cp.Indices = make([]ast.Expr, len(node.Indices))
 		for i, v := range node.Indices {
 			cp.Indices[i], ok = CopyExpr(v)
 			if !ok {
