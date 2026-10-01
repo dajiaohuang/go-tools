@@ -587,8 +587,9 @@ func GroupFilesByModules(root string) ([]Module, error) {
 // package in your testdata.
 // This will panic if there is any kind of error trying to walk the file tree.
 func MustCopyFileTree(root string) map[string]any {
+	root = filepath.FromSlash(root)
 	result := map[string]any{}
-	if err := filepath.Walk(filepath.FromSlash(root), func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
