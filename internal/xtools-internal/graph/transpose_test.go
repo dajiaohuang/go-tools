@@ -48,3 +48,21 @@ func TestTranspose(t *testing.T) {
 		t.Errorf("Transpose(Transpose(g)) != g")
 	}
 }
+
+func TestTransposeIncludesNodesWithoutPredecessors(t *testing.T) {
+	g := newTestGraph(4, map[int][]int{
+		0: {1},
+	})
+	tg := Transpose(g)
+	if got := tg.NumNodes(); got != 4 {
+		t.Fatalf("Transpose(g).NumNodes() = %d, want 4", got)
+	}
+
+	cg, _ := Compact(tg)
+	if got := cg.NumNodes(); got != 4 {
+		t.Fatalf("Compact(Transpose(g)).NumNodes() = %d, want 4", got)
+	}
+	if got := len(ReversePostorder(tg)); got != 4 {
+		t.Fatalf("len(ReversePostorder(Transpose(g))) = %d, want 4", got)
+	}
+}
