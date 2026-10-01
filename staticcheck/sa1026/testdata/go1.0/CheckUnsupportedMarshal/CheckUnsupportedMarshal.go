@@ -57,6 +57,14 @@ type Recursive struct {
 	Field *Recursive
 }
 
+type UnsupportedCharData struct {
+	Field chan int `xml:",chardata"`
+}
+
+type UnsupportedCDATA struct {
+	Field func() `xml:",cdata"`
+}
+
 type ValueMarshaler chan int
 
 func (ValueMarshaler) MarshalText() ([]byte, error) { return nil, nil }
@@ -314,6 +322,11 @@ func cyclicPointer() {
 	}
 	var s S1
 	xml.Marshal(s) //@ diag(`cyclic type P, via x.Foo.Bar`)
+}
+
+func unsupportedTextFields() {
+	xml.Marshal(UnsupportedCharData{}) //@ diag(`unsupported type chan int`)
+	xml.Marshal(UnsupportedCDATA{})   //@ diag(`unsupported type func()`)
 }
 
 func functionAsArgument(arg T1) {
