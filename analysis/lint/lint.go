@@ -153,9 +153,8 @@ func (doc *Documentation) format(markdown bool, metadata bool) string {
 		if len(doc.Options) > 0 {
 			fmt.Fprintf(b, "\nOptions\n")
 			for _, opt := range doc.Options {
-				fmt.Fprintf(b, "    %s", opt)
+				fmt.Fprintf(b, "    %s\n", opt)
 			}
-			fmt.Fprint(b, "\n")
 		}
 	}
 
