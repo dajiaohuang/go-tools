@@ -15,14 +15,27 @@ import (
 )
 
 func readAligned4(r io.Reader, sz int32) ([]byte, error) {
-	full := (sz + 3) &^ 3
-	data := make([]byte, full)
-	_, err := io.ReadFull(r, data)
+	full, err := aligned4Size(sz)
+	if err != nil {
+		return nil, err
+	}
+	if full > uint64(int(^uint(0)>>1)) {
+		return nil, fmt.Errorf("note field size %d overflows int", sz)
+	}
+	data := make([]byte, int(full))
+	_, err = io.ReadFull(r, data)
 	if err != nil {
 		return nil, err
 	}
 	data = data[:sz]
 	return data, nil
+}
+
+func aligned4Size(sz int32) (uint64, error) {
+	if sz < 0 {
+		return 0, fmt.Errorf("negative note field size %d", sz)
+	}
+	return (uint64(sz) + 3) &^ uint64(3), nil
 }
 
 func ReadELFNote(filename, name string, typ int32) ([]byte, error) {
@@ -36,7 +49,14 @@ func ReadELFNote(filename, name string, typ int32) ([]byte, error) {
 			continue
 		}
 		r := sect.Open()
+		remaining := sect.Size
 		for {
+			if remaining == 0 {
+				break
+			}
+			if remaining < 12 {
+				return nil, fmt.Errorf("truncated note header: %d bytes remain", remaining)
+			}
 			var namesize, descsize, noteType int32
 			err = binary.Read(r, f.ByteOrder, &namesize)
 			if err != nil {
@@ -53,6 +73,18 @@ func ReadELFNote(filename, name string, typ int32) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("read type failed: %v", err)
 			}
+			remaining -= 12
+			nameBytes, err := aligned4Size(namesize)
+			if err != nil {
+				return nil, err
+			}
+			descBytes, err := aligned4Size(descsize)
+			if err != nil {
+				return nil, err
+			}
+			if nameBytes+descBytes > remaining {
+				return nil, fmt.Errorf("truncated note: name and desc sizes exceed remaining %d bytes", remaining)
+			}
 			noteName, err := readAligned4(r, namesize)
 			if err != nil {
 				return nil, fmt.Errorf("read name failed: %v", err)
@@ -61,6 +93,7 @@ func ReadELFNote(filename, name string, typ int32) ([]byte, error) {
 			if err != nil {
 				return nil, fmt.Errorf("read desc failed: %v", err)
 			}
+			remaining -= nameBytes + descBytes
 			if name == string(noteName) && typ == noteType {
 				return desc, nil
 			}
