@@ -50,9 +50,12 @@ jobs:
     - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
     - id: glob
       run: |
-        # We replace newlines with %0A, which GitHub apparently magically turns back into newlines
         out=$(ls -1 ./staticcheck-*.bin/*.bin)
-        echo "::set-output name=files::${out//$'\n'/%0A}"
+        {
+          echo 'files<<EOF'
+          printf '%s\n' "$out"
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"
     - uses: dominikh/staticcheck-action@9716614d4101e79b4340dd97b10e54d68234e431 # v1.4.1
       with:
         install-go: false
