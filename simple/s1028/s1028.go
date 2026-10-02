@@ -38,7 +38,12 @@ func run(pass *analysis.Pass) (any, error) {
 	for node, m := range code.Matches(pass, checkErrorsNewSprintfQ) {
 		call := node.(*ast.CallExpr)
 		sprintf := call.Args[0].(*ast.CallExpr)
-		fmtPackage := sprintf.Fun.(*ast.SelectorExpr).X
+		selector, ok := sprintf.Fun.(*ast.SelectorExpr)
+		if !ok {
+			report.Report(pass, node, "should use fmt.Errorf(...) instead of errors.New(fmt.Sprintf(...))", report.FilterGenerated())
+			continue
+		}
+		fmtPackage := selector.X
 		replacement := &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: fmtPackage, Sel: ast.NewIdent("Errorf")},
 			Args: m.State["args"].([]ast.Expr),

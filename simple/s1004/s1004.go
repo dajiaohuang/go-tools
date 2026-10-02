@@ -43,7 +43,16 @@ func CheckBytesCompare(pass *analysis.Pass) (any, error) {
 	}
 	for node, m := range code.Matches(pass, checkBytesCompareQ) {
 		call := node.(*ast.BinaryExpr).X.(*ast.CallExpr)
-		pkg := call.Fun.(*ast.SelectorExpr).X
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			prefix := ""
+			if m.State["op"].(token.Token) == token.NEQ {
+				prefix = "!"
+			}
+			report.Report(pass, node, fmt.Sprintf("should use %sbytes.Equal(%s) instead", prefix, report.RenderArgs(pass, m.State["args"].([]ast.Expr))), report.FilterGenerated())
+			continue
+		}
+		pkg := selector.X
 		equal := &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: pkg, Sel: ast.NewIdent("Equal")},
 			Args: m.State["args"].([]ast.Expr),
