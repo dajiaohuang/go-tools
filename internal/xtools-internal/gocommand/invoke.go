@@ -242,7 +242,9 @@ func (i *Invocation) run(ctx context.Context, stdout, stderr io.Writer) error {
 	// are the same node then it trusts the PWD, so by setting it
 	// in the env for the child process we fix up all the paths
 	// returned by the go command.
-	if !i.CleanEnv {
+	if i.CleanEnv {
+		cmd.Env = []string{}
+	} else {
 		cmd.Env = os.Environ()
 	}
 	cmd.Env = append(cmd.Env, i.Env...)
