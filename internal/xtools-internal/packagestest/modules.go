@@ -213,7 +213,7 @@ func moduleDir(exported *Exported, module string) string {
 	return filepath.Join(modCache(exported), path.Dir(module), path.Base(module)+"@"+moduleVersion(module))
 }
 
-var versionSuffixRE = regexp.MustCompile(`v\d+`)
+var versionSuffixRE = regexp.MustCompile(`^v\d+$`)
 
 func moduleVersion(module string) string {
 	if versionSuffixRE.MatchString(path.Base(module)) {
