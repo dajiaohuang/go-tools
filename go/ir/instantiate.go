@@ -97,10 +97,7 @@ func createInstance(fn *Function, rtargs, targs []types.Type) *Function {
 			panic("Instantiate of a Signature returned a non-signature")
 		}
 		obj = fn.object // instantiation does not exist yet
-		// Do not canonicalize signatures here. Receiver types are not part of
-		// signature identity, so a function signature may otherwise reuse a
-		// previously canonicalized method signature with a receiver.
-		sig = instance
+		sig = prog.canon.Type(instance).(*types.Signature)
 	}
 
 	// Choose strategy (instance or wrapper).
