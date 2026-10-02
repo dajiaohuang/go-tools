@@ -233,6 +233,14 @@ func needsParens(parentNode ast.Node, old, new ast.Expr) bool {
 	if precedence(parent) > newprec {
 		return true
 	}
+	// Binary operators with the same precedence are left-associative. If old
+	// was the right operand, inserting another binary expression at the same
+	// precedence would otherwise change the grouping when the AST is printed.
+	if parent, ok := parent.(*ast.BinaryExpr); ok && parent.Y == old {
+		if child, ok := new.(*ast.BinaryExpr); ok && child.Op.Precedence() == parent.Op.Precedence() {
+			return true
+		}
+	}
 
 	// Was the old node the operand of a postfix operator?
 	//  f().sel
