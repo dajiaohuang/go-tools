@@ -2,6 +2,7 @@ package sa4026
 
 import (
 	"fmt"
+	"go/ast"
 	"go/types"
 	"strconv"
 
@@ -54,25 +55,37 @@ var negativeZeroFloatQ = pattern.MustParse(`
 			(UnaryExpr "-" lit@(BasicLit "INT" "0"))))`)
 
 func run(pass *analysis.Pass) (any, error) {
-	mathName := ""
-	for _, file := range pass.Files {
-		for _, spec := range file.Imports {
-			path, err := strconv.Unquote(spec.Path.Value)
-			if err != nil || path != "math" {
+	mathQualifier := func(node ast.Node) string {
+		for _, file := range pass.Files {
+			if node.Pos() < file.Pos() || node.Pos() > file.End() {
 				continue
 			}
-			var pkgName *types.PkgName
-			if spec.Name != nil {
-				pkgName, _ = pass.TypesInfo.Defs[spec.Name].(*types.PkgName)
-			} else {
-				pkgName, _ = pass.TypesInfo.Implicits[spec].(*types.PkgName)
-			}
-			if pkgName != nil && pkgName.Name() != "." && pkgName.Name() != "_" {
-				mathName = pkgName.Name()
+			for _, spec := range file.Imports {
+				path, err := strconv.Unquote(spec.Path.Value)
+				if err != nil || path != "math" {
+					continue
+				}
+				var pkgName *types.PkgName
+				if spec.Name != nil {
+					pkgName, _ = pass.TypesInfo.Defs[spec.Name].(*types.PkgName)
+				} else {
+					pkgName, _ = pass.TypesInfo.Implicits[spec].(*types.PkgName)
+				}
+				if pkgName != nil && pkgName.Name() != "." && pkgName.Name() != "_" {
+					scope := pass.TypesInfo.Scopes[file].Innermost(node.Pos())
+					if scope != nil {
+						_, obj := scope.LookupParent(pkgName.Name(), node.Pos())
+						if obj == pkgName {
+							return pkgName.Name()
+						}
+					}
+				}
 			}
 		}
+		return ""
 	}
 	for node, m := range code.Matches(pass, negativeZeroFloatQ) {
+		mathName := mathQualifier(node)
 		if conv, ok := m.State["conv"].(*types.TypeName); ok {
 			var replacement string
 			// TODO(dh): how does this handle type aliases?
@@ -92,14 +105,13 @@ func run(pass *analysis.Pass) (any, error) {
 					report.Render(pass, m.State["lit"])),
 				opts...)
 		} else {
+			var opts []report.Option
+			if mathName != "" {
+				opts = append(opts, report.Fixes(edit.Fix("Use math.Copysign to create negative zero", edit.ReplaceWithString(node, fmt.Sprintf(`%s.Copysign(0, -1)`, mathName)))))
+			}
 			report.Report(pass, node,
 				"in Go, the floating-point literal '-0.0' is the same as '0.0', it does not produce a negative zero",
-				func() report.Option {
-					if mathName == "" {
-						return nil
-					}
-					return report.Fixes(edit.Fix("Use math.Copysign to create negative zero", edit.ReplaceWithString(node, fmt.Sprintf(`%s.Copysign(0, -1)`, mathName))))
-				}())
+				opts...)
 		}
 	}
 	return nil, nil
