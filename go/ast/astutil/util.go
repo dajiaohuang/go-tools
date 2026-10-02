@@ -204,38 +204,12 @@ func CopyExpr(node ast.Expr) (ast.Expr, bool) {
 		return &cp, ok
 	case *ast.InterfaceType:
 		cp := *node
-		var ok bool
-		cp.Methods, ok = copyFieldList(node.Methods)
-		if !ok {
-			return nil, false
-		}
 		return &cp, true
 	case *ast.StructType:
 		cp := *node
-		var ok bool
-		cp.Fields, ok = copyFieldList(node.Fields)
-		if !ok {
-			return nil, false
-		}
 		return &cp, true
-	case *ast.FuncType:
-		cp := *node
-		var ok bool
-		cp.TypeParams, ok = copyFieldList(node.TypeParams)
-		if !ok {
-			return nil, false
-		}
-		cp.Params, ok = copyFieldList(node.Params)
-		if !ok {
-			return nil, false
-		}
-		cp.Results, ok = copyFieldList(node.Results)
-		if !ok {
-			return nil, false
-		}
-		return &cp, true
-	case *ast.FuncLit:
-		// TODO(dh): implement copying of function literals.
+	case *ast.FuncLit, *ast.FuncType:
+		// TODO(dh): implement copying of function literals and types.
 		return nil, false
 	case *ast.ChanType:
 		var ok bool
@@ -247,39 +221,6 @@ func CopyExpr(node ast.Expr) (ast.Expr, bool) {
 	default:
 		panic(fmt.Sprintf("unreachable: %T", node))
 	}
-}
-
-func copyFieldList(fields *ast.FieldList) (*ast.FieldList, bool) {
-	if fields == nil {
-		return nil, true
-	}
-	cp := *fields
-	cp.List = make([]*ast.Field, len(fields.List))
-	for i, field := range fields.List {
-		fieldCopy := *field
-		fieldCopy.Names = make([]*ast.Ident, len(field.Names))
-		for j, name := range field.Names {
-			nameCopy, ok := CopyExpr(name)
-			if !ok {
-				return nil, false
-			}
-			fieldCopy.Names[j] = nameCopy.(*ast.Ident)
-		}
-		var ok bool
-		fieldCopy.Type, ok = CopyExpr(field.Type)
-		if !ok {
-			return nil, false
-		}
-		if field.Tag != nil {
-			tag, ok := CopyExpr(field.Tag)
-			if !ok {
-				return nil, false
-			}
-			fieldCopy.Tag = tag.(*ast.BasicLit)
-		}
-		cp.List[i] = &fieldCopy
-	}
-	return &cp, true
 }
 
 func Equal(a, b ast.Node) bool {
@@ -317,7 +258,7 @@ func Equal(a, b ast.Node) bool {
 		if len(a.Elts) != len(b.Elts) {
 			return false
 		}
-		for i, elt := range a.Elts {
+		for i, elt := range b.Elts {
 			if !Equal(elt, b.Elts[i]) {
 				return false
 			}
@@ -381,8 +322,7 @@ func Equal(a, b ast.Node) bool {
 		return false
 	case *ast.ChanType:
 		b := b.(*ast.ChanType)
-		return a.Dir == b.Dir && Equal(a.Value, b.Value) &&
-			(a.Arrow == token.NoPos && b.Arrow == token.NoPos || a.Arrow != token.NoPos && b.Arrow != token.NoPos)
+		return a.Dir == b.Dir && (a.Arrow == token.NoPos && b.Arrow == token.NoPos || a.Arrow != token.NoPos && b.Arrow != token.NoPos)
 	case *ast.FieldList:
 		b := b.(*ast.FieldList)
 		if len(a.List) != len(b.List) {
@@ -408,9 +348,6 @@ func Equal(a, b ast.Node) bool {
 			return false
 		}
 		return true
-	case *ast.FuncType:
-		b := b.(*ast.FuncType)
-		return Equal(a.TypeParams, b.TypeParams) && Equal(a.Params, b.Params) && Equal(a.Results, b.Results)
 	default:
 		panic(fmt.Sprintf("unreachable: %T", a))
 	}
