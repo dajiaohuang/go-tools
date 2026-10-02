@@ -43,10 +43,9 @@ func fn5() {
 	}
 }
 
-
 func fnTickOKBranchReturn() {
 	for {
-		_, ok := <-time.Tick(0) //@ diag(`leaks the underlying ticker`)
+		_, ok := <-time.Tick(time.Second) //@ diag(`leaks the underlying ticker`)
 		if ok {
 			return
 		}
@@ -55,7 +54,7 @@ func fnTickOKBranchReturn() {
 
 func fnTickClosedBranchReturn() {
 	for {
-		_, ok := <-time.Tick(0)
+		_, ok := <-time.Tick(time.Second)
 		if !ok {
 			return
 		}
