@@ -33,8 +33,8 @@ fields in structs, not unexported ones. It is usually an error to try
 to (un)marshal structs that only consist of unexported fields.
 
 This check will not flag calls involving types that define custom
-marshaling behavior, e.g. via \'MarshalJSON\' methods or the Go 1.27
-\'encoding/json/v2\' interfaces. It will also not flag empty structs.`,
+marshaling behavior, e.g. via \'MarshalJSON\' methods. It will also not
+flag empty structs.`,
 		Since:    "2019.2",
 		Severity: lint.SeverityWarning,
 		MergeIf:  lint.MergeIfAll,
@@ -49,16 +49,16 @@ var rules = map[string]callcheck.Check{
 	// Let's see if we encounter any false positives.
 	//
 	// Also, should we flag gob?
-	"encoding/json.Marshal":           check(knowledge.Arg("json.Marshal.v"), "MarshalJSON", "MarshalJSONTo", "MarshalText"),
-	"encoding/json.MarshalIndent":     check(knowledge.Arg("json.MarshalIndent.v"), "MarshalJSON", "MarshalJSONTo", "MarshalText"),
+	"encoding/json.Marshal":           check(knowledge.Arg("json.Marshal.v"), "MarshalJSON", "MarshalText"),
+	"encoding/json.MarshalIndent":     check(knowledge.Arg("json.MarshalIndent.v"), "MarshalJSON", "MarshalText"),
 	"encoding/xml.Marshal":            check(knowledge.Arg("xml.Marshal.v"), "MarshalXML", "MarshalText"),
 	"encoding/xml.MarshalIndent":      check(knowledge.Arg("xml.MarshalIndent.v"), "MarshalXML", "MarshalText"),
-	"(*encoding/json.Encoder).Encode": check(knowledge.Arg("(*encoding/json.Encoder).Encode.v"), "MarshalJSON", "MarshalJSONTo", "MarshalText"),
+	"(*encoding/json.Encoder).Encode": check(knowledge.Arg("(*encoding/json.Encoder).Encode.v"), "MarshalJSON", "MarshalText"),
 	"(*encoding/xml.Encoder).Encode":  check(knowledge.Arg("(*encoding/xml.Encoder).Encode.v"), "MarshalXML", "MarshalText"),
 
-	"encoding/json.Unmarshal":         check(knowledge.Arg("json.Unmarshal.v"), "UnmarshalJSON", "UnmarshalJSONFrom", "UnmarshalText"),
+	"encoding/json.Unmarshal":         check(knowledge.Arg("json.Unmarshal.v"), "UnmarshalJSON", "UnmarshalText"),
 	"encoding/xml.Unmarshal":          check(knowledge.Arg("xml.Unmarshal.v"), "UnmarshalXML", "UnmarshalText"),
-	"(*encoding/json.Decoder).Decode": check(knowledge.Arg("(*encoding/json.Decoder).Decode.v"), "UnmarshalJSON", "UnmarshalJSONFrom", "UnmarshalText"),
+	"(*encoding/json.Decoder).Decode": check(knowledge.Arg("(*encoding/json.Decoder).Decode.v"), "UnmarshalJSON", "UnmarshalText"),
 	"(*encoding/xml.Decoder).Decode":  check(knowledge.Arg("(*encoding/xml.Decoder).Decode.v"), "UnmarshalXML", "UnmarshalText"),
 }
 
