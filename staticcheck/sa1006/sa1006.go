@@ -75,8 +75,11 @@ var query1 = pattern.MustParse(`
 var query2 = pattern.MustParse(`(CallExpr (Symbol "fmt.Fprintf") _:format:[])`)
 
 func run(pass *analysis.Pass) (any, error) {
-	importName := func(path string) (string, bool) {
+	importName := func(node ast.Node, path string) (string, bool) {
 		for _, file := range pass.Files {
+			if node.Pos() < file.Pos() || node.Pos() > file.End() {
+				continue
+			}
 			for _, spec := range file.Imports {
 				pkgPath, err := strconv.Unquote(spec.Path.Value)
 				if err != nil || pkgPath != path {
@@ -91,7 +94,14 @@ func run(pass *analysis.Pass) (any, error) {
 				if pkgName == nil || pkgName.Name() == "." || pkgName.Name() == "_" {
 					return "", false
 				}
-				return pkgName.Name(), true
+				scope := pass.TypesInfo.Scopes[file].Innermost(node.Pos())
+				if scope != nil {
+					_, obj := scope.LookupParent(pkgName.Name(), node.Pos())
+					if obj == pkgName {
+						return pkgName.Name(), true
+					}
+				}
+				return "", false
 			}
 		}
 		return "", false
@@ -123,7 +133,7 @@ func run(pass *analysis.Pass) (any, error) {
 		if name == "fmt.Errorf" {
 			// The alternative to fmt.Errorf is errors.New, but we cannot
 			// suggest it unless errors is already imported.
-			if errorsName, ok := importName("errors"); ok {
+			if errorsName, ok := importName(node, "errors"); ok {
 				alt = errorsName + ".New"
 				fixes = append(fixes, edit.Fix(fmt.Sprintf("Use %s instead of %s", alt, name), edit.ReplaceWithString(call.Fun, alt)))
 			}
