@@ -120,6 +120,9 @@ func WorkspaceVendorEnabled(ctx context.Context, inv Invocation, r *Runner) (boo
 		return false, nil, err
 	}
 	goWork := string(bytes.TrimSpace(stdout.Bytes()))
+	if goWork == "" || goWork == "off" {
+		return false, nil, nil
+	}
 	if fi, err := os.Stat(filepath.Join(filepath.Dir(goWork), "vendor")); err == nil && fi.IsDir() {
 		mainMods, err := getWorkspaceMainModules(ctx, inv, r)
 		if err != nil {
