@@ -55,9 +55,14 @@ func isTrivial(fn *ir.Function, seen map[*ir.Function]struct{}) bool {
 		// Mutual recursion is not trivial
 		return false
 	}
+	if seen == nil {
+		seen = make(map[*ir.Function]struct{})
+	}
+	seen[fn] = struct{}{}
+	defer delete(seen, fn)
 
-	// We delay adding to seen until a call, to avoid creating garbage in the
-	// common case.
+	// Keep only the active call path in seen so repeated calls to a shared
+	// callee aren't mistaken for recursion.
 	for _, b := range fn.Blocks {
 		for _, instr := range b.Instrs {
 			switch instr := instr.(type) {
@@ -79,10 +84,6 @@ func isTrivial(fn *ir.Function, seen map[*ir.Function]struct{}) bool {
 					return false
 				}
 			case *ir.Call:
-				if seen == nil {
-					seen = make(map[*ir.Function]struct{})
-				}
-				seen[fn] = struct{}{}
 				callee := instr.Call.StaticCallee()
 				if callee == nil || !isTrivial(callee, seen) {
 					return false
