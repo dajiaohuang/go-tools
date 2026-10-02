@@ -53,7 +53,12 @@ func run(pass *analysis.Pass) (any, error) {
 			continue
 		}
 		timeNow := call.Args[0].(*ast.CallExpr)
-		timePkg := timeNow.Fun.(*ast.SelectorExpr).X
+		nowSelector, ok := ast.Unparen(timeNow.Fun).(*ast.SelectorExpr)
+		if !ok {
+			report.Report(pass, node, "should use time.Until instead of t.Sub(time.Now())", report.MinimumStdlibVersion("go1.8"), report.FilterGenerated())
+			continue
+		}
+		timePkg := nowSelector.X
 		replacement := &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: timePkg, Sel: ast.NewIdent("Until")},
 			Args: []ast.Expr{selector.X},

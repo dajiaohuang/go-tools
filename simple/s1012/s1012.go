@@ -42,7 +42,12 @@ func run(pass *analysis.Pass) (any, error) {
 		call := node.(*ast.CallExpr)
 		sub := call.Fun.(*ast.SelectorExpr)
 		now := sub.X.(*ast.CallExpr)
-		time := now.Fun.(*ast.SelectorExpr).X
+		selector, ok := ast.Unparen(now.Fun).(*ast.SelectorExpr)
+		if !ok {
+			report.Report(pass, node, "should use time.Since instead of time.Now().Sub", report.FilterGenerated())
+			continue
+		}
+		time := selector.X
 		replacement := &ast.CallExpr{
 			Fun:  &ast.SelectorExpr{X: time, Sel: ast.NewIdent("Since")},
 			Args: call.Args,
