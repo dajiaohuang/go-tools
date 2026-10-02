@@ -193,8 +193,8 @@ func run(pass *analysis.Pass) (any, error) {
 			if sel, ok := parent.(*ast.SelectorExpr); ok && sel.Sel == v {
 				break
 			}
-			if kv, ok := parent.(*ast.KeyValueExpr); ok && kv.Key == v && len(nodeStack) >= 2 {
-				if lit, ok := nodeStack[len(nodeStack)-2].(*ast.CompositeLit); ok {
+			if kv, ok := parent.(*ast.KeyValueExpr); ok && kv.Key == v && len(nodeStack) >= 3 {
+				if lit, ok := nodeStack[len(nodeStack)-3].(*ast.CompositeLit); ok {
 					litType := pass.TypesInfo.Types[lit.Type]
 					if litType.IsType() {
 						if _, ok := litType.Type.Underlying().(*types.Struct); ok {
