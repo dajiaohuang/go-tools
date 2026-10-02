@@ -75,13 +75,23 @@ func importAlias(pass *analysis.Pass, node ast.Node, path string) string {
 		if err != nil || importPath != path {
 			continue
 		}
+		var pkgName *types.PkgName
 		if spec.Name == nil {
-			return path
+			pkgName, _ = pass.TypesInfo.Implicits[spec].(*types.PkgName)
+		} else {
+			pkgName, _ = pass.TypesInfo.Defs[spec.Name].(*types.PkgName)
 		}
-		if spec.Name.Name == "." || spec.Name.Name == "_" {
+		if pkgName == nil || pkgName.Name() == "." || pkgName.Name() == "_" {
 			return ""
 		}
-		return spec.Name.Name
+		scope := pass.TypesInfo.Scopes[file].Innermost(node.Pos())
+		if scope != nil {
+			_, obj := scope.LookupParent(pkgName.Name(), node.Pos())
+			if obj == pkgName {
+				return pkgName.Name()
+			}
+		}
+		return ""
 	}
 	return ""
 }

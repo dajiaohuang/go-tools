@@ -61,7 +61,11 @@ func run(pass *analysis.Pass) (any, error) {
 
 		lit := m.State["lit"].(ast.Expr)
 		call := callNode.(*ast.CallExpr)
-		selector := call.Fun.(*ast.SelectorExpr)
+		selector, ok := ast.Unparen(call.Fun).(*ast.SelectorExpr)
+		if !ok {
+			report.Report(pass, lit, fmt.Sprintf("sleeping for %d nanoseconds is probably a bug; be explicit if it isn't", n))
+			continue
+		}
 		pkg := selector.X
 		oneNS := &ast.BinaryExpr{X: lit, Op: token.MUL, Y: &ast.SelectorExpr{X: pkg, Sel: ast.NewIdent("Nanosecond")}}
 		oneS := &ast.BinaryExpr{X: lit, Op: token.MUL, Y: &ast.SelectorExpr{X: pkg, Sel: ast.NewIdent("Second")}}

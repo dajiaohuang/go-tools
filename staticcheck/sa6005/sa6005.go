@@ -61,7 +61,16 @@ func run(pass *analysis.Pass) (any, error) {
 	for node, m := range code.Matches(pass, checkToLowerToUpperComparisonQ) {
 		comparison := node.(*ast.BinaryExpr)
 		leftCall := comparison.X.(*ast.CallExpr)
-		stringsPackage := leftCall.Fun.(*ast.SelectorExpr).X
+		selector, ok := ast.Unparen(leftCall.Fun).(*ast.SelectorExpr)
+		if !ok {
+			method := "strings.EqualFold"
+			if m.State["tok"].(token.Token) == token.NEQ {
+				method = "!" + method
+			}
+			report.Report(pass, node, fmt.Sprintf("should use %s instead", method))
+			continue
+		}
+		stringsPackage := selector.X
 		var rn ast.Expr = &ast.CallExpr{
 			Fun: &ast.SelectorExpr{X: stringsPackage, Sel: ast.NewIdent("EqualFold")},
 			Args: []ast.Expr{

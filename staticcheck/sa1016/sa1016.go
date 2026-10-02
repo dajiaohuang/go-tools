@@ -3,6 +3,7 @@ package sa1016
 import (
 	"fmt"
 	"go/ast"
+	"go/types"
 	"strconv"
 
 	"honnef.co/go/tools/analysis/code"
@@ -123,13 +124,23 @@ func importAlias(pass *analysis.Pass, node ast.Node, importPath string) string {
 		if err != nil || p != importPath {
 			continue
 		}
+		var pkgName *types.PkgName
 		if spec.Name == nil {
-			return importPath
+			pkgName, _ = pass.TypesInfo.Implicits[spec].(*types.PkgName)
+		} else {
+			pkgName, _ = pass.TypesInfo.Defs[spec.Name].(*types.PkgName)
 		}
-		if spec.Name.Name == "." || spec.Name.Name == "_" {
+		if pkgName == nil || pkgName.Name() == "." || pkgName.Name() == "_" {
 			return ""
 		}
-		return spec.Name.Name
+		scope := pass.TypesInfo.Scopes[code.File(pass, node)].Innermost(node.Pos())
+		if scope != nil {
+			_, obj := scope.LookupParent(pkgName.Name(), node.Pos())
+			if obj == pkgName {
+				return pkgName.Name()
+			}
+		}
+		return ""
 	}
 	return ""
 }
